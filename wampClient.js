@@ -16,7 +16,17 @@ var msgTypes = {
         "CLOSING": 2,
         "CLOSED": 3
     },
-    helpers = require('./helpers');
+    helpers = {
+        newGuid: function () {
+            var s4 = function () {
+                return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+            };
+            return (s4() + s4() + "-" + s4() + "-" + s4() + "-" + s4() + "-" + s4() + s4() + s4());
+        },
+        getRandom: function (min, max) {
+            return Math.random() * (max - min) + min;
+        }
+    };
 
 function WampClient(autoReconnect, heartBeat) {
     if (!(this instanceof WampClient)) {
@@ -253,5 +263,3 @@ WampClient.prototype._sendHeartbeat = function (hbNumber, cb) {
     self._heartBeatHandlers[hbNumber] = cb;
     self._wsClient.send(JSON.stringify([msgTypes.HEARTBEAT, hbNumber]));
 };
-
-module.exports = WampClient;
