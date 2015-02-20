@@ -35,7 +35,7 @@ function WampClient(autoReconnect, heartBeat) {
     var self = this;
     self._wsClient = null;
     self._autoReconnect = typeof autoReconnect === 'undefined' ? true : autoReconnect;
-    self._heartBeat = typeof heartBeat === 'undefined' ? true : heartBeat;
+    self._heartBeat = heartBeat;
     self._subscribeHandlers = {};
     self._callHandlers = {};
     self._heartBeatHandlers = {};
@@ -197,12 +197,6 @@ WampClient.prototype._openHandler = function () {
     if (self._heartBeat) {
         self._startHeartbeat.call(self);
     }
-    var subscribes = Object.getOwnPropertyNames(self._subscribeHandlers);
-    if (subscribes.length > 0) {
-        for (var i = 0; i < subscribes.length; i++) {
-            self.subscribe(subscribes[i], self._subscribeHandlers[subscribes[i]]);
-        }
-    }
     if (typeof self._connectHandler === 'function') {
         self._connectHandler();
     }
@@ -211,6 +205,7 @@ WampClient.prototype._openHandler = function () {
 WampClient.prototype._closeHandler = function () {
     var self = this;
     self.isConnected = false;
+    self._subscribeHandlers = {};
     self._callHandlers = {};
     self._heartBeatHandlers = {};
     if (!self._needReconnect) {
