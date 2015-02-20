@@ -72,7 +72,7 @@
         }
         exports.WampClient = WampClient;
     } else {
-        root._ = WampClient;
+        root.WampClient = WampClient;
     }
 
     /**
