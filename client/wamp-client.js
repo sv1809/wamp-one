@@ -102,12 +102,14 @@ WampClient.prototype._close = function (cb, needReconnect) {
  * @param args - аргументы запроса
  * @private
  */
-WampClient.prototype._call = function (url, callback, args) {
+WampClient.prototype._call = function (url, callback) {
     var self = this,
         callId = helpers.newGuid();
     if (self._wsClient.readyState === wsStates.OPEN) {
         self._callHandlers[callId] = callback;
-        self._wsClient.send(JSON.stringify([msgTypes.CALL, callId, url, args]));
+        var callData = [msgTypes.CALL, callId, url];
+        callData = callData.concat(Array.prototype.slice.call(arguments, 2));
+        self._wsClient.send(JSON.stringify(callData));
     } else {
         throw new Error('WebSocket not connected');
     }
