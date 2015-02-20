@@ -1,0 +1,21 @@
+{
+  "name": "wamp-one",
+  "version": "1.0.0",
+  "homepage": "https://github.com/sv1809/wamp-one",
+  "authors": [
+    "sv1809 <sv1809@gmail.com>",
+    "kib357 <kib357@outlook.com>"
+  ],
+  "main": "client/wamp-client.js",
+  "keywords": [
+    "wamp"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
