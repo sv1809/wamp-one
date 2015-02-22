@@ -17,6 +17,8 @@
         "UNSUBSCRIBE": 6,
         "PUBLISH": 7,
         "EVENT": 8,
+        "SUBSCRIBED": 9,
+        "SUBSCRIBEERROR": 10,
         "HEARTBEAT": 20
     };
     var wsStates = {
@@ -56,7 +58,9 @@
         self._messageHandler = self._messageHandler.bind(self);
         self.isConnected = false;
         self.close = self._close.bind(self);
-        self.connect = self._connect.bind(self);
+        self.onclose = null;
+        self.open = self.connect = self._connect.bind(self);
+        self.onopen = null;
         self.call = self._call.bind(self);
         self.subscribe = self._subscribe.bind(self);
         self.unsubscribe = self._unsubscribe.bind(self);
@@ -103,18 +107,16 @@
 
     /**
      *
-     * @param cb - callback, который отработает при закрытии соединения
      * @param needReconnect - необходимость переподключения после закрытия соединения (используется внутри WampClient).
      * Если null - то считаем, что соединение закрыли снаружи
      * @private
      */
-    WampClient.prototype._close = function (cb, needReconnect) {
+    WampClient.prototype._close = function (needReconnect) {
         var self = this;
         if (self._wsClient) {
             self._wsClient.close();
         }
         self._needReconnect = needReconnect;
-        self._disconnectHandler = cb;
     };
 
     /**
@@ -224,6 +226,9 @@
         if (typeof self._connectHandler === 'function') {
             self._connectHandler();
         }
+        if (typeof self.onopen === 'function') {
+            self.onopen();
+        }
     };
 
     WampClient.prototype._closeHandler = function () {
@@ -239,8 +244,8 @@
         if (self._autoReconnect && self._needReconnect) {
             setTimeout(self._startReconnect.bind(self), helpers.getRandom(0, 3) * 1000);
         }
-        if (typeof self._disconnectHandler === 'function') {
-            self._disconnectHandler();
+        if (typeof self.onclose === 'function') {
+            self.onclose();
         }
     };
 
