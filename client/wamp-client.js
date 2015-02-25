@@ -165,8 +165,6 @@
         if (self._wsClient.readyState === wsStates.OPEN) {
             delete self._subscribeHandlers[url];
             self._wsClient.send(JSON.stringify([msgTypes.UNSUBSCRIBE, url]));
-        } else {
-            throw new Error('WebSocket not connected');
         }
     };
 
