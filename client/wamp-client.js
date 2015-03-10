@@ -56,7 +56,6 @@
         self._closeHandler = self._closeHandler.bind(self);
         self._errorHandler = self._errorHandler.bind(self);
         self._messageHandler = self._messageHandler.bind(self);
-        self.isConnected = false;
         self.close = self._close.bind(self);
         self.onclose = null;
         self.open = self.connect = self._connect.bind(self);
@@ -64,6 +63,7 @@
         self.call = self._call.bind(self);
         self.subscribe = self._subscribe.bind(self);
         self.unsubscribe = self._unsubscribe.bind(self);
+
     };
 
     // Thanks to Underscore.js for export code
@@ -123,7 +123,6 @@
      * Отправка запроса на сервер
      * @param url
      * @param callback - callback, который вызовется, когда придет ответ с сервера
-     * @param args - аргументы запроса
      * @private
      */
     WampClient.prototype._call = function (url, callback) {
@@ -176,7 +175,6 @@
             msgData = data.length > 2 ? data[2] : null;
         switch (msgType) {
             case msgTypes.EVENT:
-                console.debug('wamp: Receive from ' + id + ' data:', msgData);
                 if (typeof self._subscribeHandlers[id] === 'function') {
                     self._subscribeHandlers[id](msgData);
                 }
@@ -216,7 +214,6 @@
     WampClient.prototype._openHandler = function () {
         var self = this;
         clearInterval(self._reconnectInterval);
-        self.isConnected = true;
         self._needReconnect = true;
         if (self._heartBeat) {
             self._startHeartbeat.call(self);
@@ -231,7 +228,6 @@
 
     WampClient.prototype._closeHandler = function () {
         var self = this;
-        self.isConnected = false;
         self._subscribeHandlers = {};
         self._callHandlers = {};
         self._heartBeatHandlers = {};
@@ -275,7 +271,7 @@
             });
             hbCounter++;
             if (hbCounter > 5) {
-                self._close(self, null, true);
+                self._close(true);
             }
         }, self._heartBeatInterval);
     };
@@ -285,5 +281,12 @@
         self._heartBeatHandlers[hbNumber] = cb;
         self._wsClient.send(JSON.stringify([msgTypes.HEARTBEAT, hbNumber]));
     };
+
+    Object.defineProperty(WampClient.prototype, 'state', {
+        get: function () {
+            return this._wsClient.readyState;
+        },
+        enumerable: true
+    });
 
 }.call(this));
