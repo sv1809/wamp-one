@@ -39,18 +39,16 @@
         }
     };
 
-    var WampClient = function (autoReconnect, heartBeat) {
+    var WampClient = function (heartBeat) {
         if (!(this instanceof WampClient)) {
-            return new WampClient(autoReconnect, heartBeat);
+            return new WampClient(heartBeat);
         }
         var self = this;
         self._wsClient = null;
-        self._autoReconnect = typeof autoReconnect === 'undefined' ? true : autoReconnect;
         self._heartBeat = heartBeat;
         self._subscribeHandlers = {};
         self._callHandlers = {};
         self._heartBeatHandlers = {};
-        self._needReconnect = true;
         self._heartBeatInterval = 5 * 1000;
         self._openHandler = self._openHandler.bind(self);
         self._closeHandler = self._closeHandler.bind(self);
@@ -111,12 +109,11 @@
      * Если null - то считаем, что соединение закрыли снаружи
      * @private
      */
-    WampClient.prototype._close = function (needReconnect) {
+    WampClient.prototype._close = function (code, reason) {
         var self = this;
         if (self._wsClient) {
-            self._wsClient.close();
+            self._wsClient.close(code, reason);
         }
-        self._needReconnect = needReconnect;
     };
 
     /**
@@ -213,8 +210,6 @@
 
     WampClient.prototype._openHandler = function () {
         var self = this;
-        clearInterval(self._reconnectInterval);
-        self._needReconnect = true;
         if (self._heartBeat) {
             self._startHeartbeat.call(self);
         }
@@ -226,17 +221,15 @@
         }
     };
 
-    WampClient.prototype._closeHandler = function () {
+    WampClient.prototype._closeHandler = function (closeEvent) {
         var self = this;
         self._subscribeHandlers = {};
         self._callHandlers = {};
         self._heartBeatHandlers = {};
-        if (!self._needReconnect) {
-            self._subscribeHandlers = {};
-        }
         clearInterval(self._hbInterval);
-        if (self._autoReconnect && self._needReconnect) {
-            setTimeout(self._startReconnect.bind(self), helpers.getRandom(0, 3) * 1000);
+        if (closeEvent.code === 1006) {
+            self._subscribeHandlers = {};
+            setTimeout(self._startReconnect.bind(self), helpers.getRandom(2, 4) * 1000);
         }
         if (typeof self.onclose === 'function') {
             self.onclose();
@@ -245,12 +238,9 @@
 
     WampClient.prototype._startReconnect = function () {
         var self = this;
-        self._reconnectInterval = setInterval(function () {
-            if (self._wsClient && self._wsClient.readyState !== wsStates.CLOSED) {
-                return;
-            }
+        if (self._wsClient && self._wsClient.readyState === wsStates.CLOSED) {
             self.connect.call(self, self._serverUrl);
-        }, 3 * 1000);
+        }
     };
 
     WampClient.prototype._errorHandler = function (err) {
@@ -271,7 +261,7 @@
             });
             hbCounter++;
             if (hbCounter > 5) {
-                self._close(true);
+                self._close();
             }
         }, self._heartBeatInterval);
     };
