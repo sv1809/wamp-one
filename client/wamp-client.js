@@ -112,7 +112,11 @@
     WampClient.prototype._close = function (code, reason) {
         var self = this;
         if (self._wsClient) {
-            self._wsClient.close(code, reason);
+            if (code) {
+                self._wsClient.close(code, reason);
+            } else {
+                self._wsClient.close();
+            }
         }
     };
 
