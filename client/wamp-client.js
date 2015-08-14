@@ -47,6 +47,8 @@
         self._wsClient = null;
         self._heartBeat = heartBeat;
         self._subscribeHandlers = {};
+        self._subscribedHandlers = {};
+        self._subscribeErrorHandlers = {};
         self._callHandlers = {};
         self._heartBeatHandlers = {};
         self._heartBeatInterval = 5 * 1000;
@@ -145,10 +147,12 @@
      * @param callback
      * @private
      */
-    WampClient.prototype._subscribe = function (url, callback) {
+    WampClient.prototype._subscribe = function (url, eventCb, okCb, errorCb) {
         var self = this;
         if (self._wsClient.readyState === wsStates.OPEN) {
-            self._subscribeHandlers[url] = callback;
+            self._subscribeHandlers[url] = eventCb;
+            self._subscribedHandlers[url] = okCb;
+            self._subscribeErrorHandlers[url] = errorCb;
             self._wsClient.send(JSON.stringify([msgTypes.SUBSCRIBE, url]));
         } else {
             throw new Error('WebSocket not connected');
@@ -164,6 +168,8 @@
         var self = this;
         if (self._wsClient.readyState === wsStates.OPEN) {
             delete self._subscribeHandlers[url];
+            delete self._subscribedHandlers[url];
+            delete self._subscribeErrorHandlers[url];
             self._wsClient.send(JSON.stringify([msgTypes.UNSUBSCRIBE, url]));
         }
     };
@@ -178,6 +184,16 @@
             case msgTypes.EVENT:
                 if (typeof self._subscribeHandlers[id] === 'function') {
                     self._subscribeHandlers[id](msgData);
+                }
+                break;
+            case msgTypes.SUBSCRIBED:
+                if (typeof self._subscribedHandlers[id] === 'function') {
+                    self._subscribedHandlers[id](msgData);
+                }
+                break;
+            case msgTypes.SUBSCRIBEERROR:
+                if (typeof self._subscribeErrorHandlers[id] === 'function') {
+                    self._subscribeErrorHandlers[id](msgData);
                 }
                 break;
             case msgTypes.CALLRESULT:
@@ -228,11 +244,12 @@
     WampClient.prototype._closeHandler = function (closeEvent) {
         var self = this;
         self._subscribeHandlers = {};
+        self._subscribedHandlers = {};
+        self._subscribeErrorHandlers = {};
         self._callHandlers = {};
         self._heartBeatHandlers = {};
         clearInterval(self._hbInterval);
         if (closeEvent.code === 1006) {
-            self._subscribeHandlers = {};
             setTimeout(self._startReconnect.bind(self), helpers.getRandom(2, 4) * 1000);
         }
         if (typeof self.onclose === 'function') {
